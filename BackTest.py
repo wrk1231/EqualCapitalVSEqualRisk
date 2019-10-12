@@ -356,3 +356,7 @@ class ECBACKTEST(BACKTEST):
             return self.backtest_result, self.risk_contribution, self.backtest_weight
         else:
             return self.backtest_result
+
+
+A = ERBACKTEST()
+res = A.backtest()
