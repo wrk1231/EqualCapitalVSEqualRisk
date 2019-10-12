@@ -53,7 +53,8 @@ class BACKTEST(object):
 
         return returns_mul_factor
 
-    def __init__(self, tickets=['SPY', 'TLT', 'GLD']):
+    def __init__(self, tickets=['SPY', 'TLT', 'GLD'], cov_frequency = 90, rebalance_frequency = 60, get_records = False, fee = 0.0005):
+
         self.MY_API_KEY = 'J4PS1W9LI8IL0E97'
         self.ONEYEARDAYS = 252
         self.cov_begin_date = datetime(2005, 1, 3).date()
@@ -61,9 +62,16 @@ class BACKTEST(object):
         self.tickets = tickets
         self.securities_num = len(self.tickets)
         self.data_all = self.get_all(for_cov=False)
-        self.data_all_c = self.get_all(for_cov=True)
         self.returns = self.get_returns(self.data_all)
         self.returns_mul_factor = self.get_returns_mul_factor(self.returns)
+        self.data_all_c = self.get_all(for_cov=True)
+        self.returns_c = self.get_returns(self.data_all_c)
+
+        self.cov_frequency = cov_frequency
+        self.rebalance_frequency = rebalance_frequency
+        self.get_records = get_records
+        self.fee = fee
+        self.cov_series = self.returns_c.rolling(window=cov_frequency).cov() * self.ONEYEARDAYS
 
 
 
