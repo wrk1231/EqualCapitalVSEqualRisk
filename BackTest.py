@@ -109,7 +109,7 @@ class BACKTEST(object):
 
     def backtest(self):
         """
-        To be overwrite in subclass
+        To be implemented in subclass
         :return:
         """
         pass
@@ -156,6 +156,12 @@ class ERBACKTEST(BACKTEST):
                          fee=0.0005)
 
     def equal_risk(self, weight, cov):
+        """
+
+        :param weight:
+        :param cov:
+        :return:
+        """
         TRC1 = weight[0] ** 2 * cov.iloc[0, 0] + \
                weight[0] * weight[1] * cov.iloc[1, 0] + \
                weight[0] * (1 - weight[0] - weight[1]) * cov.iloc[2, 0]
@@ -172,7 +178,7 @@ class ERBACKTEST(BACKTEST):
 
     def TRC(self, weight, cov):
         """
-        Total Risk Contribution
+        Total Risk Contribution / Variance of Portfolio = partial risk contribution
         """
         TRC1 = weight[0] ** 2 * cov.iloc[0, 0] + \
                weight[0] * weight[1] * cov.iloc[1, 0] + \
@@ -198,6 +204,14 @@ class ERBACKTEST(BACKTEST):
         return np.array(result)
 
     def backtest(self, cov_frequency = None, rebalance_frequency = None, get_records = False, fee = 0.0005):
+        """
+
+        :param cov_frequency: the frequency for calculating covariance matrix
+        :param rebalance_frequency:  the frequency for rebalancing our portfolio
+        :param get_records: if we need to track the historical weight & partial risk contribution or not
+        :param fee: the total fee rate in our rebalancing, total fee = absolute change of our position * fee rate
+        :return:
+        """
         ## Create new backtest equal risk result
         self.backtest_result = {}
         self.risk_contribution = pd.DataFrame()
@@ -298,6 +312,14 @@ class ECBACKTEST(BACKTEST):
         self.equal_capital_weight = np.array([1,1,1])/3
 
     def backtest(self, cov_frequency=None, rebalance_frequency=None, get_records=False, fee=0.0005):
+        """
+
+        :param cov_frequency: the frequency for calculating covariance matrix
+        :param rebalance_frequency:  the frequency for rebalancing our portfolio
+        :param get_records: if we need to track the historical weight & partial risk contribution or not
+        :param fee: the total fee rate in our rebalancing, total fee = absolute change of our position * fee rate
+        :return:
+        """
         ## Create new backtest equal risk result
         self.backtest_result = {}
         self.risk_contribution = pd.DataFrame()
@@ -375,6 +397,45 @@ class ECBACKTEST(BACKTEST):
         else:
             return self.backtest_result
 
+def run(argRun):
+    """
+    For running in the command line, need to take care of it, our data-api only allow 5 calls per minute
+    :param argRun:
+    :return:
+    """
+    if argRun.get('strategy', None) == 'EC':
+        S = ECBACKTEST(tickets= argRun.get('tickets',['SPY', 'TLT', 'GLD']),
+                       cov_frequency=argRun.get('cov_frequency',60),
+                       rebalance_frequency=argRun.get('rebalance_frequency',30),
+                       get_records= argRun.get('get_records', False),
+                       fee = argRun.get('fee', 0.0005)
+                       )
+        res = S.backtest()
+        return res
 
-# A = ERBACKTEST()
-# res = A.backtest()
+    elif argRun.get('strategy', None) == 'ER':
+        S = ERBACKTEST(tickets= argRun.get('tickets',['SPY', 'TLT', 'GLD']),
+                       cov_frequency=argRun.get('cov_frequency',60),
+                       rebalance_frequency=argRun.get('rebalance_frequency',30),
+                       get_records= argRun.get('get_records', False),
+                       fee = argRun.get('fee', 0.0005)
+                       )
+        res = S.backtest()
+        return res
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Run Strategy')
+    parser.add_argument('-s', '--strategy', dest='strategy', choices={'ER', 'EC'},
+                        help='Choose Equal Risk (ER) or Equal Capital (EC)')
+    parser.add_argument('-t', '--tickets', dest='tickets', help='Assets used to construct the portfolio', nargs='*', default=['SPY', 'TLT', 'GLD'])
+    parser.add_argument('--cov_frequency', dest='cov_frequency', type=int, help='Covariance Matrix Calculation Frequency')
+    parser.add_argument('--rebalance_frequency', dest='rebalance_frequency', type=int, help='Rebalancing Frequency')
+    parser.add_argument('--get_records', dest='get_records',  choices={1, 0}, type=bool, default=False,
+                        help='If get historical weight and risk contribution or not')
+    parser.add_argument('--fee', dest='fee', type=float, default=0.0005,
+                        help='total cost of trades')
+    args = parser.parse_args()
+    argRun = vars(args)
+    print(run(argRun))
