@@ -95,8 +95,7 @@ class BACKTEST(object):
 
         ## For calculating historical covariance, need more historical data to yield the result
         self.data_all_c = self.get_all(for_cov=True)
-        self.returns_c = self.get_returns(self.data_all_c)
-        self.cov_series = self.returns_c.rolling(window=cov_frequency).cov() * self.ONEYEARDAYS
+        self.returns_c = None
 
         self.cov_frequency = cov_frequency
         self.rebalance_frequency = rebalance_frequency
@@ -137,6 +136,15 @@ class BACKTEST(object):
         strategy_stats['MaxDD (%)'] = pd.Series(mdd)
 
         return strategy_stats
+
+    def get_cov(self):
+        """
+        Data API has limit for calling 5 times per minute
+        :return:
+        """
+        self.returns_c = self.get_returns(self.data_all_c)
+        self.cov_series = self.returns_c.rolling(window=self.cov_frequency).cov() * self.ONEYEARDAYS
+
 class ERBACKTEST(BACKTEST):
     def __init__(self, tickets=['SPY', 'TLT', 'GLD'], cov_frequency=90, rebalance_frequency=60, get_records=False,
                  fee=0.0005):
@@ -179,7 +187,7 @@ class ERBACKTEST(BACKTEST):
         return np.array([TRC1, TRC2, TRC3]) / Var_Portfolio
 
     def weight_calculation(cov_df):
-        ans = minimize(equal_risk, [0.0, 0.0], (cov_df), method='L-BFGS-B', bounds=((0, 1), (0, 1)))
+        ans = minimize(equal_risk, [0.3, 0.3], (cov_df), method='L-BFGS-B', bounds=((0, 1), (0, 1)))
         result = []
         result.extend(list(ans.x))
         result.append(1 - ans.x.sum())
@@ -193,8 +201,10 @@ class ERBACKTEST(BACKTEST):
 
         if cov_frequency == None:
             cov_frequency = self.cov_frequency
+            self.get_cov()
             cov_series = self.cov_series
         else:
+            self.get_cov()
             cov_series = self.returns_c.rolling(window=cov_frequency).cov() * self.ONEYEARDAYS
 
         if rebalance_frequency == None:
@@ -290,8 +300,10 @@ class ECBACKTEST(BACKTEST):
 
         if cov_frequency == None:
             cov_frequency = self.cov_frequency
+            self.get_cov()
             cov_series = self.cov_series
         else:
+            self.get_cov()
             cov_series = self.returns_c.rolling(window=cov_frequency).cov() * self.ONEYEARDAYS
 
         if rebalance_frequency == None:
