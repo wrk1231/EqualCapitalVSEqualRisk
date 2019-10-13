@@ -188,8 +188,8 @@ class ERBACKTEST(BACKTEST):
     def backtest(self, cov_frequency = None, rebalance_frequency = None, get_records = False, fee = 0.0005):
         ## Create new backtest equal risk result
         self.backtest_result = {}
-        self.risk_contribution = {}
-        self.backtest_weight = {}
+        self.risk_contribution = pd.DataFrame()
+        self.backtest_weight = pd.DataFrame()
 
         if cov_frequency == None:
             cov_frequency = self.cov_frequency
@@ -237,10 +237,10 @@ class ERBACKTEST(BACKTEST):
                 current_asset = current_asset * (self.returns_mul_factor.loc[date].values)
                 current_level = current_asset.sum()
                 current_weight = current_asset / current_level
-                self.backtest_weight.update({date: current_weight})
+                self.backtest_weight[date] = current_weight
                 self.backtest_result.update({date: current_level})
                 current_cov = cov_pair.get(date)
-                self.risk_contribution.update({date: self.TRC(current_weight, current_cov)})
+                self.risk_contribution[date] = self.TRC(current_weight, current_cov)
 
             elif date in rebalance_date:
                 ## at rebalance day, we hold till market close, get rolling covariance matrix, then rebalance
@@ -257,9 +257,9 @@ class ERBACKTEST(BACKTEST):
                 self.backtest_result.update({date: current_level})
                 ## Calculate Total Risk Contribution
                 current_weight = rebalance_pair.get(date)
-                self.backtest_weight.update({date: current_weight})
+                self.backtest_weight[date] = current_weight
                 current_cov = cov_pair.get(date)  ## Covariance based on close of the rebalance day
-                self.risk_contribution.update({date: self.TRC(current_weight, current_cov)})
+                self.risk_contribution[date] = self.TRC(current_weight, current_cov)
 
         self.backtest_result = pd.Series(self.backtest_result)
         self.risk_contribution = pd.Series(self.risk_contribution)
@@ -285,8 +285,8 @@ class ECBACKTEST(BACKTEST):
     def backtest(self, cov_frequency=None, rebalance_frequency=None, get_records=False, fee=0.0005):
         ## Create new backtest equal risk result
         self.backtest_result = {}
-        self.risk_contribution = {}
-        self.backtest_weight = {}
+        self.risk_contribution = pd.DataFrame()
+        self.backtest_weight = pd.DataFrame()
 
         if cov_frequency == None:
             cov_frequency = self.cov_frequency
@@ -323,10 +323,10 @@ class ECBACKTEST(BACKTEST):
                 current_asset = current_asset * (self.returns_mul_factor.loc[date].values)
                 current_level = current_asset.sum()
                 current_weight = current_asset / current_level
-                self.backtest_weight.update({date: current_weight})
+                self.backtest_weight[date] = current_weight
                 self.backtest_result.update({date: current_level})
                 current_cov = cov_pair.get(date)
-                self.risk_contribution.update({date: self.TRC(current_weight, current_cov)})
+                self.risk_contribution[date] = self.TRC(current_weight, current_cov)
 
             elif date in rebalance_date:
                 ## at rebalance day, we hold till market close, get rolling covariance matrix, then rebalance
@@ -342,9 +342,9 @@ class ECBACKTEST(BACKTEST):
                 current_level -= (np.abs(previous_asset - current_asset) * fee).sum()
                 current_weight = self.equal_capital_weight
                 self.backtest_result.update({date: current_level})
-                self.backtest_weight.update({date: current_weight})
+                self.backtest_weight[date] = current_weight
                 current_cov = cov_pair.get(date)  ## Covariance based on close of the rebalance day
-                self.risk_contribution.update({date: self.TRC(current_weight, current_cov)})
+                self.risk_contribution[date] = self.TRC(current_weight, current_cov)
 
         self.backtest_result = pd.Series(self.backtest_result)
         self.risk_contribution = pd.Series(self.risk_contribution)
