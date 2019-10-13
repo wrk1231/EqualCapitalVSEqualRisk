@@ -76,7 +76,7 @@ class BACKTEST(object):
 
         return returns_mul_factor
 
-    def __init__(self, tickets=['SPY', 'TLT', 'GLD'], cov_frequency=90, rebalance_frequency=60):
+    def __init__(self, tickets=['SPY', 'TLT', 'GLD'], cov_frequency=90, rebalance_frequency=60, get_records = False, fee=0.0005):
 
         self.ONEYEARDAYS = 252
 
