@@ -94,7 +94,8 @@ class BACKTEST(object):
         self.calendar = self.returns.index.values
 
         ## For calculating historical covariance, need more historical data to yield the result
-        self.data_all_c = self.get_all(for_cov=True)
+
+        self.data_all_c = None
         self.returns_c = None
 
         self.cov_frequency = cov_frequency
@@ -103,6 +104,8 @@ class BACKTEST(object):
         self.backtest_result = {}
         self.risk_contribution = {}
         self.backtest_weight = {}
+
+
 
     def backtest(self):
         """
@@ -142,6 +145,7 @@ class BACKTEST(object):
         Data API has limit for calling 5 times per minute
         :return:
         """
+        self.data_all_c = self.get_all(for_cov=True)
         self.returns_c = self.get_returns(self.data_all_c)
         self.cov_series = self.returns_c.rolling(window=self.cov_frequency).cov() * self.ONEYEARDAYS
 
@@ -151,7 +155,7 @@ class ERBACKTEST(BACKTEST):
         super().__init__(tickets=['SPY', 'TLT', 'GLD'], cov_frequency=90, rebalance_frequency=60, get_records=False,
                          fee=0.0005)
 
-    def equal_risk(weight, cov):
+    def equal_risk(self, weight, cov):
         TRC1 = weight[0] ** 2 * cov.iloc[0, 0] + \
                weight[0] * weight[1] * cov.iloc[1, 0] + \
                weight[0] * (1 - weight[0] - weight[1]) * cov.iloc[2, 0]
@@ -166,7 +170,7 @@ class ERBACKTEST(BACKTEST):
 
         return np.square(TRC1 - TRC2) + np.square(TRC2 - TRC3) + np.square(TRC1 - TRC3)
 
-    def TRC(weight, cov):
+    def TRC(self, weight, cov):
         """
         Total Risk Contribution
         """
@@ -186,8 +190,8 @@ class ERBACKTEST(BACKTEST):
 
         return np.array([TRC1, TRC2, TRC3]) / Var_Portfolio
 
-    def weight_calculation(cov_df):
-        ans = minimize(equal_risk, [0.3, 0.3], (cov_df), method='L-BFGS-B', bounds=((0, 1), (0, 1)))
+    def weight_calculation(self, cov_df):
+        ans = minimize(self.equal_risk, [0.3, 0.3], (cov_df), method='L-BFGS-B', bounds=((0, 1), (0, 1)))
         result = []
         result.extend(list(ans.x))
         result.append(1 - ans.x.sum())
@@ -272,8 +276,9 @@ class ERBACKTEST(BACKTEST):
                 self.risk_contribution[date] = self.TRC(current_weight, current_cov)
 
         self.backtest_result = pd.Series(self.backtest_result)
-        self.risk_contribution = pd.Series(self.risk_contribution)
-        self.backtest_weight = pd.Series(self.backtest_weight)
+        self.risk_contribution = self.risk_contribution.T
+        self.backtest_weight = self.backtest_weight.T
+        self.backtest_weight.index.name = 'Date'
         self.backtest_result.index.name = 'Date'
         self.risk_contribution.index.name = 'Date'
 
@@ -359,9 +364,10 @@ class ECBACKTEST(BACKTEST):
                 self.risk_contribution[date] = self.TRC(current_weight, current_cov)
 
         self.backtest_result = pd.Series(self.backtest_result)
-        self.risk_contribution = pd.Series(self.risk_contribution)
-        self.backtest_weight = pd.Series(self.backtest_weight)
+        self.risk_contribution = self.risk_contribution.T
+        self.backtest_weight = self.backtest_weight.T
         self.backtest_result.index.name = 'Date'
+        self.backtest_weight.index.name = 'Date'
         self.risk_contribution.index.name = 'Date'
 
         if get_records == True:
@@ -370,5 +376,5 @@ class ECBACKTEST(BACKTEST):
             return self.backtest_result
 
 
-A = ERBACKTEST()
-res = A.backtest()
+# A = ERBACKTEST()
+# res = A.backtest()
